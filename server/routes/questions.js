@@ -3,6 +3,7 @@ const db = require('../config/database');
 
 const router = express.Router();
 
+// Existing GET endpoint - Get questions by course code
 router.get('/', async (req, res) => {
   try {
     const { courseCode } = req.query;
@@ -19,6 +20,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Existing POST endpoint - Add new question
 router.post('/', async (req, res) => {
   try {
     const {
@@ -55,6 +57,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Existing DELETE endpoint - Delete question
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -63,6 +66,251 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting question:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// 🆕 NEW: Auto-save draft endpoint
+router.post('/auto-save', async (req, res) => {
+  try {
+    const {
+      userId,
+      paperDetails,
+      selectedQuestions,
+      paperId
+    } = req.body;
+
+    console.log('📝 Auto-saving question paper...');
+
+    // Check if paper already exists
+    if (paperId) {
+      // Update existing draft - no need to update exam_date for existing papers
+      await db.query(
+        `UPDATE question_papers 
+         SET selected_questions = ?,
+             last_saved = NOW(),
+             status = 'draft'
+         WHERE id = ?`,
+        [JSON.stringify(selectedQuestions), paperId]
+      );
+
+      console.log('✅ Draft updated successfully:', paperId);
+      
+      res.json({
+        success: true,
+        message: 'Draft saved successfully',
+        paperId: paperId,
+        timestamp: new Date()
+      });
+    } else {
+      // Create new draft
+      // Format exam_date properly (handle empty string or invalid dates)
+      let formattedExamDate = null;
+      if (paperDetails.examDate && paperDetails.examDate.trim() !== '') {
+        try {
+          const dateObj = new Date(paperDetails.examDate);
+          if (!isNaN(dateObj.getTime())) {
+            formattedExamDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD format
+          }
+        } catch (e) {
+          console.warn('Invalid exam date:', paperDetails.examDate);
+        }
+      }
+      
+      // If no valid date, use current date as default
+      if (!formattedExamDate) {
+        formattedExamDate = new Date().toISOString().split('T')[0];
+      }
+
+      const [result] = await db.query(
+        `INSERT INTO question_papers 
+         (user_id, department, course_code, course_name, academic_year, 
+          semester, year, regulation, exam_type, exam_date, register_number,
+          selected_questions, status, last_saved)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW())`,
+        [
+          userId,
+          paperDetails.department || 'Not Specified',
+          paperDetails.courseCode || '',
+          paperDetails.courseName || '',
+          paperDetails.academicYear || '',
+          paperDetails.semester || '',
+          paperDetails.year || '',
+          paperDetails.regulation || '',
+          paperDetails.examType || '',
+          formattedExamDate,
+          paperDetails.registerNumber || null,
+          JSON.stringify(selectedQuestions)
+        ]
+      );
+
+      console.log('✅ New draft created:', result.insertId);
+
+      res.json({
+        success: true,
+        message: 'Draft created successfully',
+        paperId: result.insertId,
+        timestamp: new Date()
+      });
+    }
+  } catch (error) {
+    console.error('❌ Auto-save error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save draft',
+      message: error.message 
+    });
+  }
+});
+
+// 🆕 NEW: Load draft endpoint
+router.get('/load-draft/:paperId', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+    
+    console.log('📂 Loading draft paper:', paperId);
+
+    const [papers] = await db.query(
+      `SELECT * FROM question_papers WHERE id = ?`,
+      [paperId]
+    );
+
+    if (papers.length === 0) {
+      console.log('❌ Draft not found:', paperId);
+      return res.status(404).json({ error: 'Draft not found' });
+    }
+
+    const paper = papers[0];
+    
+    // 🔧 FIX: Check if selected_questions is already an object or needs parsing
+    let selectedQuestions = [];
+    if (paper.selected_questions) {
+      if (typeof paper.selected_questions === 'string') {
+        try {
+          selectedQuestions = JSON.parse(paper.selected_questions);
+        } catch (e) {
+          console.error('Failed to parse selected_questions:', e);
+          selectedQuestions = [];
+        }
+      } else if (Array.isArray(paper.selected_questions)) {
+        selectedQuestions = paper.selected_questions;
+      } else if (typeof paper.selected_questions === 'object') {
+        // Already an object, use as is
+        selectedQuestions = paper.selected_questions;
+      }
+    }
+    
+    console.log('✅ Draft loaded successfully with', selectedQuestions.length, 'questions');
+    
+    res.json({
+      paperId: paper.id,
+      paperDetails: {
+        department: paper.department,
+        courseCode: paper.course_code,
+        courseName: paper.course_name,
+        academicYear: paper.academic_year,
+        semester: paper.semester,
+        year: paper.year,
+        regulation: paper.regulation,
+        examType: paper.exam_type,
+        examDate: paper.exam_date,
+        registerNumber: paper.register_number
+      },
+      selectedQuestions: selectedQuestions,
+      lastSaved: paper.last_saved,
+      status: paper.status
+    });
+  } catch (error) {
+    console.error('❌ Error loading draft:', error);
+    res.status(500).json({ error: 'Failed to load draft', message: error.message });
+  }
+});
+
+// 🆕 NEW: Mark paper as completed
+router.post('/complete/:paperId', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+
+    console.log('🎉 Marking paper as completed:', paperId);
+
+    await db.query(
+      `UPDATE question_papers 
+       SET status = 'completed', 
+           last_saved = NOW() 
+       WHERE id = ?`,
+      [paperId]
+    );
+
+    console.log('✅ Paper marked as completed');
+
+    res.json({ success: true, message: 'Question paper marked as completed' });
+  } catch (error) {
+    console.error('❌ Error completing paper:', error);
+    res.status(500).json({ error: 'Failed to complete paper' });
+  }
+});
+
+// 🆕 NEW: Get all drafts for a user
+router.get('/drafts/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('📋 Fetching drafts for user:', userId);
+
+    const [drafts] = await db.query(
+      `SELECT id, course_code, course_name, exam_type, academic_year, semester, 
+              year, regulation, last_saved, created_at, status
+       FROM question_papers 
+       WHERE user_id = ? AND status = 'draft'
+       ORDER BY last_saved DESC`,
+      [userId]
+    );
+
+    console.log(`✅ Found ${drafts.length} drafts`);
+    res.json(drafts);
+  } catch (error) {
+    console.error('❌ Error fetching drafts:', error);
+    res.status(500).json({ error: 'Failed to fetch drafts' });
+  }
+});
+
+// 🆕 NEW: Get ALL papers (both draft and completed) for a user
+router.get('/all-papers/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('📋 Fetching ALL papers for user:', userId);
+
+    const [papers] = await db.query(
+      `SELECT id, course_code, course_name, exam_type, academic_year, semester, 
+              year, regulation, last_saved, created_at, status
+       FROM question_papers 
+       WHERE user_id = ?
+       ORDER BY 
+         CASE WHEN status = 'draft' THEN 0 ELSE 1 END,
+         last_saved DESC`,
+      [userId]
+    );
+
+    console.log(`✅ Found ${papers.length} papers (${papers.filter(p => p.status === 'draft').length} drafts, ${papers.filter(p => p.status === 'completed').length} completed)`);
+    res.json(papers);
+  } catch (error) {
+    console.error('❌ Error fetching all papers:', error);
+    res.status(500).json({ error: 'Failed to fetch papers' });
+  }
+});
+
+// 🆕 NEW: Delete draft/paper
+router.delete('/paper/:paperId', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+
+    console.log('🗑️ Deleting paper:', paperId);
+
+    await db.query('DELETE FROM question_papers WHERE id = ?', [paperId]);
+    
+    console.log('✅ Paper deleted successfully');
+    res.json({ success: true, message: 'Paper deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting paper:', error);
+    res.status(500).json({ error: 'Failed to delete paper' });
   }
 });
 

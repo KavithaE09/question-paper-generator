@@ -13,14 +13,17 @@ function AppContent() {
   const [tempDepartment, setTempDepartment] = useState('');
   const [tempCourseCode, setTempCourseCode] = useState('');
   const [tempCourseName, setTempCourseName] = useState('');
+  const [currentPaperId, setCurrentPaperId] = useState(null);
+  const [isReadOnlyMode, setIsReadOnlyMode] = useState(false); // 🆕 Track if paper is read-only
   const { user } = useAuth();
-  const { setPaperDetails, loadPaper, clearTemplate } = useQuestionPaper();
+  const { setPaperDetails, setSelectedQuestions, loadPaper, clearTemplate } = useQuestionPaper();
 
   // Debug: Log when step changes
   useEffect(() => {
     console.log('Current step:', step);
     console.log('User:', user);
-  }, [step, user]);
+    console.log('Read-only mode:', isReadOnlyMode);
+  }, [step, user, isReadOnlyMode]);
 
   const handleAuthSuccess = () => {
     console.log('Auth success, navigating to dashboard');
@@ -30,14 +33,37 @@ function AppContent() {
   const handleCreateNew = () => {
     console.log('Creating new paper...');
     clearTemplate();
+    setCurrentPaperId(null);
+    setIsReadOnlyMode(false); // 🆕 New papers are editable
     setStep('department');
     console.log('Step changed to:', 'department');
   };
 
-  const handleOpenPaper = (paperId) => {
-    console.log('Opening paper:', paperId);
-    loadPaper(paperId);
-    setStep('builder');
+  // 🆕 UPDATED: Handle opening both drafts and completed papers with read-only flag
+  const handleOpenPaper = (paperId, draftData = null, isCompleted = false) => {
+    console.log('📂 Opening paper:', paperId);
+    console.log('📄 Draft data:', draftData);
+    console.log('🔒 Is completed (read-only):', isCompleted);
+    
+    if (draftData) {
+      // Loading a draft/completed paper from backend
+      console.log('✅ Loading paper with data:', draftData);
+      
+      setCurrentPaperId(draftData.paperId || paperId);
+      setPaperDetails(draftData.paperDetails);
+      setSelectedQuestions(draftData.selectedQuestions);
+      setIsReadOnlyMode(isCompleted); // 🆕 Set read-only mode based on completion status
+      setStep('builder');
+      
+      console.log('✅ Paper loaded successfully. Read-only:', isCompleted);
+    } else {
+      // Fallback: Loading from localStorage (legacy support)
+      console.log('📄 Loading from localStorage');
+      loadPaper(paperId);
+      setCurrentPaperId(paperId);
+      setIsReadOnlyMode(false); // Assume editable for localStorage papers
+      setStep('builder');
+    }
   };
 
   const handleDepartmentNext = (department, courseCode, courseName) => {
@@ -51,12 +77,15 @@ function AppContent() {
   const handleDetailsNext = (details) => {
     console.log('Details submitted:', details);
     setPaperDetails(details);
+    setCurrentPaperId(null); // New paper, no ID yet
+    setIsReadOnlyMode(false); // 🆕 New papers are always editable
     setStep('builder');
   };
 
   // Handle back to dashboard
   const handleBackToDashboard = () => {
     console.log('Navigating back to dashboard');
+    setIsReadOnlyMode(false); // 🆕 Reset read-only mode
     setStep('dashboard');
   };
 
@@ -68,11 +97,11 @@ function AppContent() {
   }
 
   if (!user && step === 'login') {
-    return <Login onSignupClick={() => setStep('signup')} onSuccess={handleAuthSuccess} />;
+    return <Login onToggle={() => setStep('signup')} onSuccess={handleAuthSuccess} />;
   }
 
   if (!user && step === 'signup') {
-    return <Signup onLoginClick={() => setStep('login')} onSuccess={handleAuthSuccess} />;
+    return <Signup onToggle={() => setStep('login')} onSuccess={handleAuthSuccess} />;
   }
 
   if (step === 'dashboard') {
@@ -108,7 +137,9 @@ function AppContent() {
   if (step === 'builder') {
     return (
       <QuestionPaperBuilder 
-        onBack={handleBackToDashboard}
+        onBackToHome={handleBackToDashboard}
+        paperId={currentPaperId}
+        isReadOnly={isReadOnlyMode} // 🆕 Pass read-only flag to builder
       />
     );
   }

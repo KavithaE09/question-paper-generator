@@ -122,9 +122,6 @@ export default function AddQuestionModal({ courseCode, onClose, onSubmit }) {
               >
                 <option value="">Select Marks</option>
                 <option value="2">2 Mark</option>
-                <option value="3">3 Mark</option>
-                <option value="4">4 Mark</option>
-                <option value="5">5 Mark</option>
                 <option value="6">6 Mark</option>
                 <option value="7">7 Mark</option>
                 <option value="10">10 Mark</option>

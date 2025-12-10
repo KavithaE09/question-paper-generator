@@ -5,6 +5,7 @@ const db = require('../config/database');
 
 const router = express.Router();
 
+// Existing signup route
 router.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -35,6 +36,7 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+// Existing login route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -61,6 +63,41 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// **NEW: Google Sign-In Route**
+router.post('/google-login', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    // Check if user exists
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    
+    let userId;
+    
+    if (users.length === 0) {
+      // Create new user for Google sign-in
+      const [result] = await db.query(
+        'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+        [name, email, 'google-oauth'] // Password placeholder for OAuth users
+      );
+      userId = result.insertId;
+    } else {
+      userId = users[0].id;
+    }
+
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+      expiresIn: '24h',
+    });
+
+    res.json({
+      user: { id: userId, name, email },
+      token,
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -111,6 +111,14 @@ INSERT INTO courses (name, code, department_id) VALUES
 ('Digital Principles and System Design', '24IT3501', 6)
 ON DUPLICATE KEY UPDATE name=name;
 
+ALTER TABLE question_papers 
+ADD COLUMN status ENUM('draft', 'completed') DEFAULT 'draft',
+ADD COLUMN last_saved TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ADD COLUMN selected_questions JSON DEFAULT NULL;
+
+
+ALTER TABLE question_papers 
+MODIFY COLUMN exam_date DATE NULL DEFAULT NULL;
 -- =====================================================
 -- UNIT 1: BOOLEAN ALGEBRA AND LOGIC GATES
 -- =====================================================
