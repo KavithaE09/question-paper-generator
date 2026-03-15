@@ -1,6 +1,5 @@
-// ============================================
 // QuestionPaperTemplate.jsx
-// ============================================
+
 import { useState } from 'react';
 import { Home } from 'lucide-react';
 import TemplateHeader from './TemplateHeader';
@@ -11,7 +10,6 @@ export default function QuestionPaperTemplate({
   paperDetails,
   selectedQuestions,
   onQuestionRemove,
-  onBackToHome,
   onDrop,
 }) {
   const [dragOver, setDragOver] = useState(false);

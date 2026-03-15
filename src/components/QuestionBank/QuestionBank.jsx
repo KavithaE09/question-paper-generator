@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Filter, Search, Plus } from 'lucide-react';
+import { Filter, Search, Plus, Image } from 'lucide-react';
 import QuestionCard from './QuestionCard';
 
-export default function QuestionBank({ courseCode, onDragStart, selectedQuestionIds, onAddQuestion }) {
+export default function QuestionBank({ courseCode, onDragStart, selectedQuestionIds, onAddQuestion, onExtractImages }) {
   const [questions, setQuestions] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState('all');
@@ -28,7 +28,7 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
       const transformedData = data.map((q) => ({
         id: q.id.toString(),
         unit: q.unit,
-        marks: q.marks,
+        marks: parseInt(q.marks), // 🆕 Ensure marks is a number
         questionText: q.question_text,
         bloom: q.bloom,
         courseOutcome: q.course_outcome,
@@ -38,6 +38,7 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
         topic: q.topic || null
       }));
       
+      console.log('✅ Transformed questions with marks:', transformedData.map(q => ({ id: q.id, marks: q.marks, type: typeof q.marks })));
       setQuestions(transformedData);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -47,27 +48,41 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
   const applyFilters = () => {
     let filtered = [...questions];
 
+    console.log('🔍 Applying filters:', { selectedUnit, selectedMarks, selectedTopic, searchTerm });
+
     if (selectedUnit !== 'all') {
       filtered = filtered.filter(q => q.unit === selectedUnit);
+      console.log('After unit filter:', filtered.length);
     }
 
     if (selectedMarks !== 'all') {
-      filtered = filtered.filter(q => q.marks === selectedMarks);
+      // 🆕 Convert both to numbers for comparison
+      filtered = filtered.filter(q => {
+        const questionMarks = parseInt(q.marks);
+        const filterMarks = parseInt(selectedMarks);
+        console.log(`Comparing question marks: ${questionMarks} (${typeof questionMarks}) with filter: ${filterMarks} (${typeof filterMarks})`);
+        return questionMarks === filterMarks;
+      });
+      console.log(`After marks filter (${selectedMarks}):`, filtered.length);
     }
 
     if (selectedTopic !== 'all') {
       filtered = filtered.filter(q => q.topic === selectedTopic);
+      console.log('After topic filter:', filtered.length);
     }
 
     if (searchTerm) {
       filtered = filtered.filter(q =>
         q.questionText.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('After search filter:', filtered.length);
     }
 
+    console.log('✅ Final filtered questions:', filtered.length);
     setFilteredQuestions(filtered);
   };
 
+  // 🆕 All possible marks options
   const markOptions = [2, 6, 7, 13, 15];
   const topicOptions = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
 
@@ -79,16 +94,29 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
             <Filter className="w-5 h-5 mr-2" />
             Suggested Questions
           </h3>
-          {onAddQuestion && (
-            <button
-              onClick={onAddQuestion}
-              className="flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-md"
-              title="Add New Question"
-            >
-              <Plus className="w-4 h-4" />
-              ADD
-            </button>
-          )}
+          <div className="flex gap-2">
+            {/* 🆕 Extract Images Button */}
+            {onExtractImages && (
+              <button
+                onClick={onExtractImages}
+                className="flex items-center gap-2 bg-purple-600 text-white hover:bg-purple-700 px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-md"
+                title="Extract Images from Document"
+              >
+                <Image className="w-4 h-4" />
+                Extract
+              </button>
+            )}
+            {onAddQuestion && (
+              <button
+                onClick={onAddQuestion}
+                className="flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-md"
+                title="Add New Question"
+              >
+                <Plus className="w-4 h-4" />
+                ADD
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -109,7 +137,10 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
             <label className="block text-sm font-semibold text-gray-700 mb-2">Unit</label>
             <select
               value={selectedUnit}
-              onChange={(e) => setSelectedUnit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedUnit(value === 'all' ? 'all' : parseInt(value));
+              }}
               className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white cursor-pointer hover:border-gray-400 transition-colors"
             >
               <option value="all">All Units</option>
@@ -125,7 +156,11 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
             <label className="block text-sm font-semibold text-gray-700 mb-2">Marks</label>
             <select
               value={selectedMarks}
-              onChange={(e) => setSelectedMarks(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              onChange={(e) => {
+                const value = e.target.value;
+                console.log('🎯 Marks filter changed to:', value);
+                setSelectedMarks(value === 'all' ? 'all' : parseInt(value));
+              }}
               className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white cursor-pointer hover:border-gray-400 transition-colors"
             >
               <option value="all">All Marks</option>
@@ -156,7 +191,8 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredQuestions.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
-            No questions found
+            <p className="font-semibold">No questions found</p>
+            <p className="text-sm mt-2">Try adjusting your filters</p>
           </div>
         ) : (
           filteredQuestions.map((question) => {
@@ -175,7 +211,7 @@ export default function QuestionBank({ courseCode, onDragStart, selectedQuestion
 
       <div className="p-4 bg-gray-50 border-t">
         <div className="text-sm text-gray-600">
-          Showing {filteredQuestions.length} of {questions.length} questions
+          Showing <span className="font-semibold">{filteredQuestions.length}</span> of <span className="font-semibold">{questions.length}</span> questions
         </div>
       </div>
     </div>

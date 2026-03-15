@@ -7,8 +7,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { departmentId } = req.query;
-    console.log('📍 Received departmentId:', departmentId);
-    console.log('📍 Type of departmentId:', typeof departmentId);
+    console.log(' Received departmentId:', departmentId);
+    console.log('Type of departmentId:', typeof departmentId);
     
     let query = 'SELECT * FROM courses';
     const params = [];
@@ -20,17 +20,17 @@ router.get('/', async (req, res) => {
 
     query += ' ORDER BY code';
 
-    console.log('📍 Query:', query);
-    console.log('📍 Params:', params);
+    console.log(' Query:', query);
+    console.log(' Params:', params);
 
     const [courses] = await db.query(query, params);
-    console.log('📍 Courses found:', courses.length);
-    console.log('📍 Courses:', JSON.stringify(courses, null, 2));
+    console.log('Courses found:', courses.length);
+
     
     res.json(courses);
 
   } catch (error) {
-    console.error('❌ Error fetching courses:', error);
+    console.error('Error fetching courses:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

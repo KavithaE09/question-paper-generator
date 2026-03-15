@@ -7,6 +7,7 @@ import QuestionPaperTemplate from '../components/Template/QuestionPaperTemplate'
 import AddQuestionModal from '../components/Modals/AddQuestionModal';
 import SyllabusModal from '../components/Modals/SyllabusModal';
 import PreviewModal from '../components/Modals/PreviewModal';
+import { useAuth } from '../context/AuthContext'; 
 import { Eye, Printer, ArrowLeft, Home, BookOpen, FileText, Download, X, CheckCircle, Clock } from 'lucide-react';
 
 // 🆕 Finish Confirmation Modal
@@ -52,61 +53,148 @@ function FinishConfirmationModal({ onConfirm, onCancel }) {
   );
 }
 
-// InstructionModal component
+// 🆕 InstructionModal component - Updated with Table Format
 function InstructionModal({ onClose }) {
+  const handleDownloadPDF = () => {
+    const pdfContent = `REVISED Bloom's Taxonomy Action Verbs
+
+I. REMEMBERING
+Definition: Exhibit memory of previously learned material by recalling facts, terms, basic concepts, and answers.
+Verbs: Choose, Define, Find, How, Label, List, Match, Name, Omit, Recall, Relate, Select, Show, Spell, Tell, What, When, Where, Which, Who, Why
+
+II. UNDERSTANDING
+Definition: Demonstrate understanding of facts and ideas by organizing, comparing, translating, interpreting, giving descriptions, and stating main ideas.
+Verbs: Classify, Compare, Contrast, Demonstrate, Explain, Extend, Illustrate, Infer, Interpret, Outline, Relate, Rephrase, Show, Summarize, Translate
+
+III. APPLYING
+Definition: Solve problems to new situations by applying acquired knowledge, facts, techniques and rules in a different way.
+Verbs: Apply, Build, Choose, Construct, Develop, Experiment with, Identify, Interview, Make use of, Model, Organize, Plan, Select, Solve, Utilize
+
+IV. ANALYZING
+Definition: Examine and break information into parts by identifying motives or causes. Make inferences and find evidence to support generalizations.
+Verbs: Analyze, Assume, Categorize, Classify, Compare, Conclusion, Contrast, Discover, Dissect, Distinguish, Divide, Examine, Function, Inference, Inspect, List, Motive, Relationships, Simplify, Survey, Take part in, Test for, Theme
+
+V. EVALUATING
+Definition: Present and defend opinions by making judgments about information, validity of ideas, or quality of work based on a set of criteria.
+Verbs: Agree, Appraise, Assess, Award, Choose, Compare, Conclude, Criteria, Criticize, Decide, Deduct, Defend, Determine, Disprove, Estimate, Evaluate, Explain, Importance, Influence, Interpret, Judge, Justify, Mark, Measure, Opinion, Perceive, Prioritize, Prove, Rate, Recommend, Rule on, Select, Support, Value
+
+VI. CREATING
+Definition: Compile information together in a different way by combining elements in a new pattern or proposing alternative solutions.
+Verbs: Adapt, Build, Change, Choose, Combine, Compile, Compose, Construct, Create, Delete, Design, Develop, Discuss, Elaborate, Estimate, Formulate, Happen, Imagine, Improve, Invent, Make up, Maximize, Minimize, Modify, Original, Originate, Plan, Predict, Propose, Solution, Solve, Suppose, Test, Theory
+
+Reference: Anderson, L. W., & Krathwohl, D. R. (2001). A taxonomy for learning, teaching, and assessing, Abridged Edition. Boston, MA: Allyn and Bacon.`;
+
+    const blob = new Blob([pdfContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'blooms_taxonomy_action_verbs.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const taxonomyData = [
+    {
+      level: 'I. Remembering',
+      definition: 'Exhibit memory of previously learned material by recalling facts, terms, basic concepts, and answers.',
+      verbs: ['Choose', 'Define', 'Find', 'How', 'Label', 'List', 'Match', 'Name', 'Omit', 'Recall', 'Relate', 'Select', 'Show', 'Spell', 'Tell', 'What', 'When', 'Where', 'Which', 'Who', 'Why']
+    },
+    {
+      level: 'II. Understanding',
+      definition: 'Demonstrate understanding of facts and ideas by organizing, comparing, translating, interpreting, giving descriptions, and stating main ideas.',
+      verbs: ['Classify', 'Compare', 'Contrast', 'Demonstrate', 'Explain', 'Extend', 'Illustrate', 'Infer', 'Interpret', 'Outline', 'Relate', 'Rephrase', 'Show', 'Summarize', 'Translate']
+    },
+    {
+      level: 'III. Applying',
+      definition: 'Solve problems to new situations by applying acquired knowledge, facts, techniques and rules in a different way.',
+      verbs: ['Apply', 'Build', 'Choose', 'Construct', 'Develop', 'Experiment with', 'Identify', 'Interview', 'Make use of', 'Model', 'Organize', 'Plan', 'Select', 'Solve', 'Utilize']
+    },
+    {
+      level: 'IV. Analyzing',
+      definition: 'Examine and break information into parts by identifying motives or causes. Make inferences and find evidence to support generalizations.',
+      verbs: ['Analyze', 'Assume', 'Categorize', 'Classify', 'Compare', 'Conclusion', 'Contrast', 'Discover', 'Dissect', 'Distinguish', 'Divide', 'Examine', 'Function', 'Inference', 'Inspect', 'List', 'Motive', 'Relationships', 'Simplify', 'Survey', 'Take part in', 'Test for', 'Theme']
+    },
+    {
+      level: 'V. Evaluating',
+      definition: 'Present and defend opinions by making judgments about information, validity of ideas, or quality of work based on a set of criteria.',
+      verbs: ['Agree', 'Appraise', 'Assess', 'Award', 'Choose', 'Compare', 'Conclude', 'Criteria', 'Criticize', 'Decide', 'Deduct', 'Defend', 'Determine', 'Disprove', 'Estimate', 'Evaluate', 'Explain', 'Importance', 'Influence', 'Interpret', 'Judge', 'Justify', 'Mark', 'Measure', 'Opinion', 'Perceive', 'Prioritize', 'Prove', 'Rate', 'Recommend', 'Rule on', 'Select', 'Support', 'Value']
+    },
+    {
+      level: 'VI. Creating',
+      definition: 'Compile information together in a different way by combining elements in a new pattern or proposing alternative solutions.',
+      verbs: ['Adapt', 'Build', 'Change', 'Choose', 'Combine', 'Compile', 'Compose', 'Construct', 'Create', 'Delete', 'Design', 'Develop', 'Discuss', 'Elaborate', 'Estimate', 'Formulate', 'Happen', 'Imagine', 'Improve', 'Invent', 'Make up', 'Maximize', 'Minimize', 'Modify', 'Original', 'Originate', 'Plan', 'Predict', 'Propose', 'Solution', 'Solve', 'Suppose', 'Test', 'Theory']
+    }
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Instructions</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-lg transition"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <h2 className="text-2xl font-bold">REVISED Bloom's Taxonomy Action Verbs</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
+              title="Download as Text File"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
         
-        <div className="p-6 space-y-4">
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h3 className="font-semibold text-blue-900 mb-2">1. Adding Questions</h3>
-            <p className="text-blue-800 text-sm">
-              Drag and drop questions from the question bank on the left to the template on the right.
-            </p>
-          </div>
-          
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-            <h3 className="font-semibold text-green-900 mb-2">2. Removing Questions</h3>
-            <p className="text-green-800 text-sm">
-              Click the trash icon on any question in the template to remove it.
-            </p>
-          </div>
-          
-          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
-            <h3 className="font-semibold text-purple-900 mb-2">3. Preview</h3>
-            <p className="text-purple-800 text-sm">
-              Click the "Preview" button to see how your question paper will look when printed.
-            </p>
-          </div>
-          
-          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
-            <h3 className="font-semibold text-orange-900 mb-2">4. Syllabus</h3>
-            <p className="text-orange-800 text-sm">
-              Click "SYLLABUS" to view the syllabus structure for the selected exam type.
-            </p>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border-2 border-gray-400">
+              <thead>
+                <tr className="bg-purple-100">
+                  <th className="border-2 border-gray-400 px-4 py-3 text-left font-bold text-gray-800 w-1/6">
+                    Bloom's Taxonomy
+                  </th>
+                  <th className="border-2 border-gray-400 px-4 py-3 text-left font-bold text-gray-800 w-2/6">
+                    Definitions
+                  </th>
+                  <th className="border-2 border-gray-400 px-4 py-3 text-left font-bold text-gray-800 w-3/6">
+                    Verbs
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {taxonomyData.map((item, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="border-2 border-gray-400 px-4 py-4 align-top">
+                      <span className="font-bold text-purple-700">{item.level}</span>
+                    </td>
+                    <td className="border-2 border-gray-400 px-4 py-4 align-top">
+                      <p className="text-sm text-gray-700 leading-relaxed">{item.definition}</p>
+                    </td>
+                    <td className="border-2 border-gray-400 px-4 py-4 align-top">
+                      <div className="flex flex-wrap gap-1">
+                        {item.verbs.map((verb, vIndex) => (
+                          <span key={vIndex} className="text-sm text-gray-700">
+                            • {verb}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-            <h3 className="font-semibold text-yellow-900 mb-2">5. Auto-Save</h3>
-            <p className="text-yellow-800 text-sm">
-              Your work is automatically saved every 3 seconds. Check the save status indicator in the header.
-            </p>
-          </div>
-
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-            <h3 className="font-semibold text-red-900 mb-2">6. Finishing Paper</h3>
-            <p className="text-red-800 text-sm">
-              Once you're done, click "Finish" to mark the paper as complete. After finishing, you can only preview the paper.
+          {/* Reference */}
+          <div className="mt-6 bg-gray-100 border-2 border-gray-300 p-4 rounded-lg">
+            <p className="text-sm text-gray-700 italic">
+              <strong>Reference:</strong> Anderson, L. W., & Krathwohl, D. R. (2001). A taxonomy for learning, teaching, and assessing, Abridged Edition. Boston, MA: Allyn and Bacon.
             </p>
           </div>
         </div>
@@ -124,12 +212,15 @@ export default function QuestionPaperBuilder({ onBackToHome, isReadOnly = false 
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [draggedQuestion, setDraggedQuestion] = useState(null);
   const [isFinished, setIsFinished] = useState(isReadOnly);
+  const { user } = useAuth();
 
-  // 🆕 AUTO-SAVE HOOK
+  // ✅ FIXED: removed || 1 fallback — userId is undefined if user not loaded,
+  // and useAutoSave will skip saving until a real userId is available
   const { saveStatus, lastSaved, paperId, forceSave } = useAutoSave({
     paperDetails,
     selectedQuestions,
-    userId: 1
+    userId: user?.id,
+    userRole: user?.role || 'faculty'
   }, 3000);
 
   // 🆕 Format last saved time
@@ -322,7 +413,7 @@ export default function QuestionPaperBuilder({ onBackToHome, isReadOnly = false 
               </button>
               
               <div className="max-w-lg">
-                <h1 className="text-2xl font-bold text-gray-800">Government College of Engineering</h1>
+                <h1 className="text-2xl font-bold text-gray-800">Francis Xavier Engineering College</h1>
                 <p className="text-sm text-gray-700 mt-1">
                   {paperDetails.courseCode} - {paperDetails.courseName}
                 </p>

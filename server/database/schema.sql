@@ -105,7 +105,7 @@ INSERT INTO courses (name, code, department_id) VALUES
 ('Database Management Systems', '21CS4002', 1),
 ('Computer Networks', '21CS5003', 1),
 ('Operating Systems', '21CS4004', 1),
-('Digital Signal Processing', '21EC5001', 2),
+('Digital Signal Processing', '21EC5000', 2),
 ('VLSI Design', '21EC6002', 2),
 ('Microprocessors', '21EC4003', 2),
 ('Digital Principles and System Design', '24IT3501', 6)

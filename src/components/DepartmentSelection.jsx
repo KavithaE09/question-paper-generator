@@ -28,16 +28,15 @@ export default function DepartmentSelection({ onNext }) {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching departments from:', `${API_URL}/departments`);
-      
-      const response = await fetch(`${API_URL}/departments`);
+
+      // ✅ FIX: Added /api prefix
+      const response = await fetch(`${API_URL}/api/departments`);
       const data = await response.json();
-      
-      console.log('✅ Departments received:', data);
+
       setDepartments(data);
       setError(null);
     } catch (error) {
-      console.error('❌ Error fetching departments:', error);
+      console.error('Error fetching departments:', error);
       setError('Failed to load departments');
     } finally {
       setLoading(false);
@@ -47,26 +46,21 @@ export default function DepartmentSelection({ onNext }) {
   const fetchCourses = async (departmentId) => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching courses for department ID:', departmentId);
-      
-      const url = `${API_URL}/courses?departmentId=${departmentId}`;
-      console.log('🔍 Full URL:', url);
-      
+
+      // ✅ FIX: Added /api prefix
+      const url = `${API_URL}/api/courses?departmentId=${departmentId}`;
       const response = await fetch(url);
       const data = await response.json();
-      
-      console.log('✅ Courses received:', data);
-      console.log('✅ Number of courses:', data.length);
-      
+
       setCourses(data);
       setSelectedCourse(null);
       setError(null);
-      
+
       if (data.length === 0) {
-        console.warn('⚠️ No courses found for department ID:', departmentId);
+        console.warn('No courses found for department ID:', departmentId);
       }
     } catch (error) {
-      console.error('❌ Error fetching courses:', error);
+      console.error('Error fetching courses:', error);
       setError('Failed to load courses');
       setCourses([]);
     } finally {
@@ -79,8 +73,6 @@ export default function DepartmentSelection({ onNext }) {
 
     const dept = departments.find((d) => d.id === selectedDepartment);
     const course = courses.find((c) => c.id === selectedCourse);
-
-    console.log('📤 Submitting:', { dept, course });
 
     if (dept && course) {
       onNext(dept.name, course.code, course.name);
@@ -110,7 +102,6 @@ export default function DepartmentSelection({ onNext }) {
                 value={selectedDepartment ?? ''}
                 onChange={(e) => {
                   const value = e.target.value;
-                  console.log('🏛️ Department selected:', value);
                   setSelectedDepartment(value ? Number(value) : null);
                 }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -137,7 +128,6 @@ export default function DepartmentSelection({ onNext }) {
                   value={selectedCourse ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    console.log('📚 Course selected:', value);
                     setSelectedCourse(value ? Number(value) : null);
                   }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

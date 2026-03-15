@@ -181,7 +181,7 @@ See `server/README.md` for detailed API documentation.
 
 ### Frontend
 ```bash
-npm run build
+npm run dev
 ```
 
 ### Backend

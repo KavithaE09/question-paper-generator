@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../../config/firebase'; // ✅ Correct path
+import { auth, googleProvider } from '../../firebase';
+import { useAuth } from '../../context/AuthContext';
 import { LogIn } from 'lucide-react';
 import PropTypes from 'prop-types';
 
@@ -10,11 +10,13 @@ export default function Login({ onToggle, onSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth(); // ✅ import googleLogin
 
+  // Regular email/password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
     const success = await login(email, password);
     if (success) {
@@ -22,38 +24,64 @@ export default function Login({ onToggle, onSuccess }) {
     } else {
       setError('Invalid email or password');
     }
+    setLoading(false);
   };
 
+  // ✅ Google Sign-In handler
   const handleGoogleSignIn = async () => {
-    setLoading(true);
     setError('');
+    setLoading(true);
 
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
+      console.log('Google user email:', user.email);
+
+      // Validate college email
+      if (!user.email.endsWith('@francisxavier.ac.in')) {
+        await auth.signOut();
+        setError('⚠️ Only Francis Xavier Engineering College email addresses (@francisxavier.ac.in) are allowed.');
+        setLoading(false);
+        return;
+      }
+
       // Send to backend
-      const response = await fetch('http://localhost:5000/api/auth/google-login', {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API}/api/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: user.email, 
-          name: user.displayName 
-        })
+        body: JSON.stringify({
+          email: user.email,
+          name: user.displayName || 'User',
+          role: 'faculty'
+        }),
       });
 
-      const data = await response.json();
-      
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (response.ok) {
+        const data = await response.json();
+        
+        // ✅ FIX: Save to AuthContext so user?.role works in App.jsx
+        googleLogin(data.user, data.token);
+        
+        console.log('✅ Google login successful:', data.user);
         onSuccess();
       } else {
-        setError('Google sign-in failed');
+        const errorData = await response.json();
+        setError(errorData.error || 'Authentication failed');
       }
     } catch (err) {
       console.error('Google sign-in error:', err);
-      setError('Google sign-in failed. Please try again.');
+      
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup blocked. Please allow popups for this site.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError('');
+      } else {
+        setError('Google sign-in failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,15 +92,9 @@ export default function Login({ onToggle, onSuccess }) {
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('/images/fx.webp')`
-        }}
+        style={{ backgroundImage: `url('/images/fx.webp')` }}
       />
-      
-      {/* Fallback gradient if image doesn't load */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600" />
-      
-      {/* Dark overlay for better contrast */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 to-blue-900/60" />
 
       {/* Login Card */}
@@ -86,11 +108,17 @@ export default function Login({ onToggle, onSuccess }) {
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
         <p className="text-center text-gray-600 mb-6">Sign in to your account</p>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
+
         {/* Google Sign-In Button */}
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-4"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -98,17 +126,14 @@ export default function Login({ onToggle, onSuccess }) {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          {loading ? 'Signing in...' : 'Sign in with Google'}
+          <span>Sign in with Google</span>
         </button>
 
         {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with email</span>
-          </div>
+        <div className="flex items-center my-4">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-4 text-gray-500 text-sm">OR</span>
+          <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
         {/* Email/Password Form */}
@@ -122,6 +147,7 @@ export default function Login({ onToggle, onSuccess }) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter your email"
               required
+              disabled={loading}
             />
           </div>
 
@@ -134,20 +160,16 @@ export default function Login({ onToggle, onSuccess }) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter your password"
               required
+              disabled={loading}
             />
           </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
@@ -157,9 +179,14 @@ export default function Login({ onToggle, onSuccess }) {
             type="button"
             onClick={onToggle}
             className="text-blue-600 hover:text-blue-700 font-semibold"
+            disabled={loading}
           >
             Sign Up
           </button>
+        </p>
+
+        <p className="mt-4 text-center text-gray-500 text-xs">
+          ℹ️ Google Sign-In: Only @francisxavier.ac.in emails allowed
         </p>
       </div>
     </div>

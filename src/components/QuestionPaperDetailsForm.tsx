@@ -43,7 +43,7 @@ export default function QuestionPaperDetailsForm({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6 rounded-t-lg">
-          <h1 className="text-2xl font-bold text-center">GOVERNMENT COLLEGE OF ENGINEERING, TIRUNELVELI</h1>
+          <h1 className="text-2xl font-bold text-center">FRANCIS XAVIER ENGINEERING COLLEGE, TIRUNELVELI</h1>
           <p className="text-center text-blue-200 mt-1">Question Paper Generation System</p>
         </div>
 

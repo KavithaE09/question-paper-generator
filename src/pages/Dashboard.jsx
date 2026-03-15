@@ -144,7 +144,7 @@ export default function Dashboard({ onCreateNew, onOpenPaper }) {
       <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Government College of Engineering</h1>
+            <h1 className="text-3xl font-bold">FRANCIS XAVIER ENGINEERING COLLEGE, TIRUNELVELI</h1>
             <p className="text-blue-200 mt-1">Question Paper Generation System</p>
           </div>
           <div className="flex items-center gap-4">

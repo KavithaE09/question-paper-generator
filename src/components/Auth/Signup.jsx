@@ -116,6 +116,9 @@ export default function Signup({ onToggle, onSuccess }) {
             Sign In
           </button>
         </p>
+        <p className="mt-4 text-center text-gray-500 text-xs">
+          ℹ️ Only @francisxavier.ac.in emails are allowed for account creation. The `admin@francisxavier.ac.in` email will be automatically assigned to the Admin Dashboard.
+        </p>
       </div>
     </div>
   );

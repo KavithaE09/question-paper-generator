@@ -1,9 +1,7 @@
-// Import the functions you need from the SDKs you need
+// src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getAnalytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCbdnWDKU_oyCZDxogd-XPN1bZOvc564k0",
   authDomain: "question-paper-97e6b.firebaseapp.com",
@@ -17,9 +15,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and get a reference to the service
+// Initialize Firebase Authentication
 export const auth = getAuth(app);
+
+// Configure Google Provider
 export const googleProvider = new GoogleAuthProvider();
 
-// Optional: Initialize Analytics (only if you want to use it)
-export const analytics = getAnalytics(app);
+// College domain restriction
+googleProvider.setCustomParameters({
+  hd: 'francisxavier.ac.in', // Only suggest this domain
+  prompt: 'select_account' // Always show account picker
+});
+
+export default app;

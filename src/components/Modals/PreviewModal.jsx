@@ -33,10 +33,32 @@ export default function PreviewModal({ paperDetails, questions, onClose }) {
     return `${index + 1}`;
   };
 
+  // Helper function to get part description with marks
+  const getPartDescription = (part) => {
+    const partQuestions = groupedQuestions[part] || [];
+    const totalMarks = partQuestions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+    const questionCount = partQuestions.length;
+    
+    // Calculate the mark pattern
+    if (part === 'A') {
+      const marksPerQuestion = partQuestions.length > 0 ? partQuestions[0].marks : 2;
+      return `PART - A (${questionCount} x ${marksPerQuestion} = ${totalMarks} Marks)`;
+    } else if (part === 'B') {
+      const marksPerQuestion = partQuestions.length > 0 ? partQuestions[0].marks : 13;
+      const pairs = Math.ceil(questionCount / 2);
+      return `PART - B (${pairs} x ${marksPerQuestion} = ${totalMarks} Marks)`;
+    } else if (part === 'C') {
+      const marksPerQuestion = partQuestions.length > 0 ? partQuestions[0].marks : 15;
+      const pairs = Math.ceil(questionCount / 2);
+      return `PART - C (${pairs} x ${marksPerQuestion} = ${totalMarks} Marks)`;
+    }
+    return `PART - ${part} (${totalMarks} Marks)`;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 flex items-center justify-between print:hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 flex items-center justify-between print:hidden">
           <h2 className="text-2xl font-bold">Preview Question Paper</h2>
           <div className="flex items-center space-x-4">
             {/* Checkbox for Consolidation Tables */}
@@ -46,7 +68,7 @@ export default function PreviewModal({ paperDetails, questions, onClose }) {
                 id="includeConsolidation"
                 checked={includeConsolidation}
                 onChange={(e) => setIncludeConsolidation(e.target.checked)}
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label 
                 htmlFor="includeConsolidation" 
@@ -58,7 +80,7 @@ export default function PreviewModal({ paperDetails, questions, onClose }) {
 
             <button
               onClick={handlePrint}
-              className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold flex items-center hover:bg-green-50 transition"
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold flex items-center hover:bg-blue-50 transition"
             >
               <Printer className="w-4 h-4 mr-2" />
               PRINT
@@ -74,12 +96,13 @@ export default function PreviewModal({ paperDetails, questions, onClose }) {
             <TemplateHeader paperDetails={paperDetails} />
 
             <div className="mt-6 space-y-6">
-              {Object.entries(groupedQuestions).map(([part, partQuestions]) => {
-                const partMarks = partQuestions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+              {Object.entries(groupedQuestions)
+                .sort(([partA], [partB]) => partA.localeCompare(partB))
+                .map(([part, partQuestions]) => {
                 return (
                   <div key={part} className="border-b pb-4">
                     <h4 className="text-lg font-bold mb-2">
-                      PART - {part} ({partMarks} Marks)
+                      {getPartDescription(part)}
                     </h4>
                     <p className="text-sm text-gray-600 mb-4 italic">Answer ALL Questions</p>
                     <div className="overflow-x-auto">

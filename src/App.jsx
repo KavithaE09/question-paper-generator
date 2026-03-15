@@ -4,6 +4,7 @@ import { QuestionPaperProvider, useQuestionPaper } from './context/QuestionPaper
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard'; // ✅ Import Admin Dashboard
 import DepartmentSelection from './components/DepartmentSelection';
 import QuestionPaperDetailsForm from './components/QuestionPaperDetailsForm';
 import QuestionPaperBuilder from './pages/QuestionPaperBuilder';
@@ -14,55 +15,99 @@ function AppContent() {
   const [tempCourseCode, setTempCourseCode] = useState('');
   const [tempCourseName, setTempCourseName] = useState('');
   const [currentPaperId, setCurrentPaperId] = useState(null);
-  const [isReadOnlyMode, setIsReadOnlyMode] = useState(false); // 🆕 Track if paper is read-only
+  const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
   const { user } = useAuth();
   const { setPaperDetails, setSelectedQuestions, loadPaper, clearTemplate } = useQuestionPaper();
 
-  // Debug: Log when step changes
   useEffect(() => {
     console.log('Current step:', step);
     console.log('User:', user);
+    console.log('User role:', user?.role);
     console.log('Read-only mode:', isReadOnlyMode);
+
+    // ✅ Initial redirection logic
+    if (user && step === 'login') {
+      if (user.role === 'admin') {
+        setStep('admin-dashboard');
+      } else {
+        setStep('dashboard');
+      }
+    }
   }, [step, user, isReadOnlyMode]);
 
+  // ✅ Prevent Admin from accessing creation steps
+  useEffect(() => {
+    if (user?.role === 'admin' && ['department', 'details'].includes(step)) {
+      setStep('admin-dashboard');
+    }
+  }, [user, step]);
+
+  // ✅ Handle auth success with role-based routing
   const handleAuthSuccess = () => {
     console.log('Auth success, navigating to dashboard');
-    setStep('dashboard');
+    console.log('User role:', user?.role);
+
+    // Route based on role
+    if (user?.role === 'admin') {
+      setStep('admin-dashboard');
+    } else {
+      setStep('dashboard');
+    }
   };
 
   const handleCreateNew = () => {
+    // ✅ Guard: Admin cannot create papers
+    if (user?.role === 'admin') {
+      console.warn('❌ Admins are not allowed to create papers');
+      return;
+    }
+
     console.log('Creating new paper...');
     clearTemplate();
     setCurrentPaperId(null);
-    setIsReadOnlyMode(false); // 🆕 New papers are editable
+    setIsReadOnlyMode(false);
     setStep('department');
     console.log('Step changed to:', 'department');
   };
 
-  // 🆕 UPDATED: Handle opening both drafts and completed papers with read-only flag
-  const handleOpenPaper = (paperId, draftData = null, isCompleted = false) => {
+  const handleOpenPaper = async (paperId, draftData = null, isCompleted = false) => {
     console.log('📂 Opening paper:', paperId);
-    console.log('📄 Draft data:', draftData);
-    console.log('🔒 Is completed (read-only):', isCompleted);
-    
+
+    // ✅ For Admin or specific view requests, ensure read-only
+    const readOnly = isCompleted || user?.role === 'admin';
+
     if (draftData) {
-      // Loading a draft/completed paper from backend
-      console.log('✅ Loading paper with data:', draftData);
-      
-      setCurrentPaperId(draftData.paperId || paperId);
+      console.log('✅ Loading paper with provided data');
+      setCurrentPaperId(paperId);
       setPaperDetails(draftData.paperDetails);
       setSelectedQuestions(draftData.selectedQuestions);
-      setIsReadOnlyMode(isCompleted); // 🆕 Set read-only mode based on completion status
+      setIsReadOnlyMode(readOnly);
       setStep('builder');
-      
-      console.log('✅ Paper loaded successfully. Read-only:', isCompleted);
     } else {
-      // Fallback: Loading from localStorage (legacy support)
-      console.log('📄 Loading from localStorage');
-      loadPaper(paperId);
-      setCurrentPaperId(paperId);
-      setIsReadOnlyMode(false); // Assume editable for localStorage papers
-      setStep('builder');
+      console.log('📄 Fetching paper details from backend...');
+      try {
+        const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${API}/api/questions/load-draft/${paperId}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentPaperId(paperId);
+          setPaperDetails(data.paperDetails);
+          setSelectedQuestions(data.selectedQuestions);
+          setIsReadOnlyMode(readOnly);
+          setStep('builder');
+          console.log('✅ Paper loaded from backend');
+        } else {
+          console.error('❌ Failed to load paper from backend');
+          // Fallback to local (though unlikely to work for Admin)
+          loadPaper(paperId);
+          setCurrentPaperId(paperId);
+          setIsReadOnlyMode(readOnly);
+          setStep('builder');
+        }
+      } catch (err) {
+        console.error('❌ Error fetching paper:', err);
+      }
     }
   };
 
@@ -77,16 +122,22 @@ function AppContent() {
   const handleDetailsNext = (details) => {
     console.log('Details submitted:', details);
     setPaperDetails(details);
-    setCurrentPaperId(null); // New paper, no ID yet
-    setIsReadOnlyMode(false); // 🆕 New papers are always editable
+    setCurrentPaperId(null);
+    setIsReadOnlyMode(false);
     setStep('builder');
   };
 
-  // Handle back to dashboard
+  // ✅ Handle back to dashboard with role check
   const handleBackToDashboard = () => {
     console.log('Navigating back to dashboard');
-    setIsReadOnlyMode(false); // 🆕 Reset read-only mode
-    setStep('dashboard');
+    setIsReadOnlyMode(false);
+
+    // Route based on role
+    if (user?.role === 'admin') {
+      setStep('admin-dashboard');
+    } else {
+      setStep('dashboard');
+    }
   };
 
   // If no user and step is not login/signup, redirect to login
@@ -104,6 +155,7 @@ function AppContent() {
     return <Signup onToggle={() => setStep('login')} onSuccess={handleAuthSuccess} />;
   }
 
+  // ✅ Faculty Dashboard
   if (step === 'dashboard') {
     return (
       <Dashboard
@@ -113,9 +165,18 @@ function AppContent() {
     );
   }
 
+  // ✅ Admin Dashboard
+  if (step === 'admin-dashboard') {
+    return (
+      <AdminDashboard
+        onOpenPaper={handleOpenPaper}
+      />
+    );
+  }
+
   if (step === 'department') {
     return (
-      <DepartmentSelection 
+      <DepartmentSelection
         onNext={handleDepartmentNext}
         onBack={handleBackToDashboard}
       />
@@ -136,21 +197,20 @@ function AppContent() {
 
   if (step === 'builder') {
     return (
-      <QuestionPaperBuilder 
+      <QuestionPaperBuilder
         onBackToHome={handleBackToDashboard}
         paperId={currentPaperId}
-        isReadOnly={isReadOnlyMode} // 🆕 Pass read-only flag to builder
+        isReadOnly={isReadOnlyMode}
       />
     );
   }
 
-  // Fallback - should never reach here
   console.error('Unknown step:', step);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-4">Error: Unknown page state</h1>
-        <button 
+        <button
           onClick={handleBackToDashboard}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >

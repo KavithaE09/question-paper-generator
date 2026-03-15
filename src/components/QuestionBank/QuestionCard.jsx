@@ -1,4 +1,4 @@
-// QuestionCard.jsx - Updated with RED styling for added questions
+// QuestionCard.jsx - Updated with Image Display and RED styling
 
 export default function QuestionCard({ question, onDragStart, isSelected }) {
   return (
@@ -29,6 +29,21 @@ export default function QuestionCard({ question, onDragStart, isSelected }) {
             {question.questionText}
           </p>
           
+          {/* 🆕 DISPLAY IMAGE if exists */}
+          {(question.imageUrl || question.image_url) && (
+            <div className="mb-3">
+              <img
+                src={question.imageUrl || question.image_url}
+                alt="Question diagram"
+                className="max-w-full h-auto max-h-48 border border-gray-300 rounded shadow-sm"
+                onError={(e) => {
+                  console.error('Image load failed:', question.imageUrl || question.image_url);
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+          
           {/* Badges */}
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
@@ -42,15 +57,21 @@ export default function QuestionCard({ question, onDragStart, isSelected }) {
                 {question.topic}
               </span>
             )}
-            <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium">
-              {question.bloom}
-            </span>
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
-              CO: {question.courseOutcome}
-            </span>
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
-              PO: {question.programOutcome}
-            </span>
+            {question.bloom && (
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium">
+                {question.bloom}
+              </span>
+            )}
+            {question.courseOutcome && (
+              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
+                CO: {question.courseOutcome}
+              </span>
+            )}
+            {question.programOutcome && (
+              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
+                PO: {question.programOutcome}
+              </span>
+            )}
           </div>
 
           {/* Added Badge - RED STYLING */}

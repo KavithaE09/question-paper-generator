@@ -28,7 +28,7 @@ export default function TemplateHeader({ paperDetails }) {
       </div>
 
       <div className="text-center space-y-1">
-        <h1 className="text-lg font-bold">GOVERNMENT COLLEGE OF ENGINEERING, TIRUNELVELI - 627 003</h1>
+        <h1 className="text-lg font-bold">FRANCIS XAVIER ENGINEERING COLLEGE, TIRUNELVELI - 627 003</h1>
         <p className="text-sm font-semibold"></p>
         <p className="text-sm">
           Academic Year {paperDetails.academicYear} - ({paperDetails.semester})
